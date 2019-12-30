@@ -1,5 +1,6 @@
 package com.codahale.metrics;
 
+import com.codahale.metrics.Timer.Context;
 import org.junit.Test;
 
 import java.util.concurrent.TimeUnit;
@@ -10,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ExponentiallyDecayingReservoirTest {
     @Test
-    public void aReservoirOf100OutOf1000Elements() throws Exception {
+    public void aReservoirOf100OutOf1000Elements() {
         final ExponentiallyDecayingReservoir reservoir = new ExponentiallyDecayingReservoir(100, 0.99);
         for (int i = 0; i < 1000; i++) {
             reservoir.update(i);
@@ -28,7 +29,7 @@ public class ExponentiallyDecayingReservoirTest {
     }
 
     @Test
-    public void aReservoirOf100OutOf10Elements() throws Exception {
+    public void aReservoirOf100OutOf10Elements() {
         final ExponentiallyDecayingReservoir reservoir = new ExponentiallyDecayingReservoir(100, 0.99);
         for (int i = 0; i < 10; i++) {
             reservoir.update(i);
@@ -138,6 +139,22 @@ public class ExponentiallyDecayingReservoirTest {
         assertThat(snapshot.getMean()).isEqualTo(0);
         assertThat(snapshot.getMedian()).isEqualTo(0);
         assertThat(snapshot.size()).isEqualTo(0);
+    }
+
+    @Test
+    public void removeZeroWeightsInSamplesToPreventNaNInMeanValues() {
+        final ManualClock clock = new ManualClock();
+        final ExponentiallyDecayingReservoir reservoir = new ExponentiallyDecayingReservoir(1028, 0.015, clock);
+        Timer timer = new Timer(reservoir, clock);
+
+        Context context = timer.time();
+        clock.addMillis(100);
+        context.stop();
+
+        for (int i = 1; i < 48; i++) {
+            clock.addHours(1);
+            assertThat(reservoir.getSnapshot().getMean()).isBetween(0.0, Double.MAX_VALUE);
+        }
     }
 
     @Test

@@ -3,14 +3,16 @@ package com.codahale.metrics;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class HistogramTest {
     private final Reservoir reservoir = mock(Reservoir.class);
     private final Histogram histogram = new Histogram(reservoir);
 
     @Test
-    public void updatesTheCountOnUpdates() throws Exception {
+    public void updatesTheCountOnUpdates() {
         assertThat(histogram.getCount())
                 .isZero();
 
@@ -21,7 +23,7 @@ public class HistogramTest {
     }
 
     @Test
-    public void returnsTheSnapshotFromTheReservoir() throws Exception {
+    public void returnsTheSnapshotFromTheReservoir() {
         final Snapshot snapshot = mock(Snapshot.class);
         when(reservoir.getSnapshot()).thenReturn(snapshot);
 

@@ -130,6 +130,11 @@ public abstract class ScheduledReporter implements Closeable, Reporter {
                                 ScheduledExecutorService executor,
                                 boolean shutdownExecutorOnStop,
                                 Set<MetricAttribute> disabledMetricAttributes) {
+
+        if (registry == null) {
+            throw new NullPointerException("registry == null");
+        }
+
         this.registry = registry;
         this.filter = filter;
         this.executor = executor == null ? createDefaultExecutor(name) : executor;
@@ -153,6 +158,18 @@ public abstract class ScheduledReporter implements Closeable, Reporter {
     }
 
     /**
+     * Starts the reporter polling at the given period with the specific runnable action.
+     * Visible only for testing.
+     */
+    synchronized void start(long initialDelay, long period, TimeUnit unit, Runnable runnable) {
+        if (this.scheduledFuture != null) {
+            throw new IllegalArgumentException("Reporter already started");
+        }
+
+        this.scheduledFuture = executor.scheduleAtFixedRate(runnable, initialDelay, period, unit);
+    }
+
+    /**
      * Starts the reporter polling at the given period.
      *
      * @param initialDelay the time to delay the first execution
@@ -160,17 +177,13 @@ public abstract class ScheduledReporter implements Closeable, Reporter {
      * @param unit         the unit for {@code period} and {@code initialDelay}
      */
     synchronized public void start(long initialDelay, long period, TimeUnit unit) {
-        if (this.scheduledFuture != null) {
-            throw new IllegalArgumentException("Reporter already started");
-        }
-
-        this.scheduledFuture = executor.scheduleAtFixedRate(() -> {
+        start(initialDelay, period, unit, () -> {
             try {
                 report();
             } catch (Throwable ex) {
                 LOG.error("Exception thrown from {}#report. Exception was suppressed.", ScheduledReporter.this.getClass().getSimpleName(), ex);
             }
-        }, initialDelay, period, unit);
+        });
     }
 
     /**
@@ -187,7 +200,7 @@ public abstract class ScheduledReporter implements Closeable, Reporter {
                     executor.shutdownNow(); // Cancel currently executing tasks
                     // Wait a while for tasks to respond to being cancelled
                     if (!executor.awaitTermination(1, TimeUnit.SECONDS)) {
-                        System.err.println(getClass().getSimpleName() + ": ScheduledExecutorService did not terminate");
+                        LOG.warn("ScheduledExecutorService did not terminate.");
                     }
                 }
             } catch (InterruptedException ie) {

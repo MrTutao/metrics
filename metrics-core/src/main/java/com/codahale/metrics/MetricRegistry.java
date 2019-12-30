@@ -83,11 +83,70 @@ public class MetricRegistry implements MetricSet {
      * @param metric the metric
      * @param <T>    the type of the metric
      * @return {@code metric}
-     * @throws IllegalArgumentException if the name is already registered
+     * @throws IllegalArgumentException if the name is already registered or metric variable is null
      */
     @SuppressWarnings("unchecked")
     public <T extends Metric> T register(String name, T metric) throws IllegalArgumentException {
-        if (metric instanceof MetricSet) {
+
+        if (metric == null) {
+            throw new NullPointerException("metric == null");
+        }
+
+        if (metric instanceof MetricRegistry) {
+            final MetricRegistry childRegistry = (MetricRegistry)metric;
+            final String childName = name;
+            childRegistry.addListener(new MetricRegistryListener() {
+                @Override
+                public void onGaugeAdded(String name, Gauge<?> gauge) {
+                    register(name(childName, name), gauge);
+                }
+
+                @Override
+                public void onGaugeRemoved(String name) {
+                    remove(name(childName, name));
+                }
+
+                @Override
+                public void onCounterAdded(String name, Counter counter) {
+                    register(name(childName, name), counter);
+                }
+
+                @Override
+                public void onCounterRemoved(String name) {
+                    remove(name(childName, name));
+                }
+
+                @Override
+                public void onHistogramAdded(String name, Histogram histogram) {
+                    register(name(childName, name), histogram);
+                }
+
+                @Override
+                public void onHistogramRemoved(String name) {
+                    remove(name(childName, name));
+                }
+
+                @Override
+                public void onMeterAdded(String name, Meter meter) {
+                    register(name(childName, name), meter);
+                }
+
+                @Override
+                public void onMeterRemoved(String name) {
+                    remove(name(childName, name));
+                }
+
+                @Override
+                public void onTimerAdded(String name, Timer timer) {
+                    register(name(childName, name), timer);
+                }
+
+                @Override
+                public void onTimerRemoved(String name) {
+                    remove(name(childName, name));
+                }
+            });
+        } else if (metric instanceof MetricSet) {
             registerAll(name, (MetricSet) metric);
         } else {
             final Metric existing = metrics.putIfAbsent(name, metric);
@@ -297,7 +356,7 @@ public class MetricRegistry implements MetricSet {
     /**
      * Adds a {@link MetricRegistryListener} to a collection of listeners that will be notified on
      * metric creation.  Listeners will be notified in the order in which they are added.
-     * <p/>
+     * <p>
      * <b>N.B.:</b> The listener will be notified of all existing metrics when it first registers.
      *
      * @param listener the listener that will be notified
@@ -501,7 +560,14 @@ public class MetricRegistry implements MetricSet {
         }
     }
 
-    private void registerAll(String prefix, MetricSet metrics) throws IllegalArgumentException {
+    /**
+     * Given a metric set, registers them with the given prefix prepended to their names.
+     *
+     * @param prefix a name prefix
+     * @param metrics a set of metrics
+     * @throws IllegalArgumentException if any of the names are already registered
+     */
+    public void registerAll(String prefix, MetricSet metrics) throws IllegalArgumentException {
         for (Map.Entry<String, Metric> entry : metrics.getMetrics().entrySet()) {
             if (entry.getValue() instanceof MetricSet) {
                 registerAll(name(prefix, entry.getKey()), (MetricSet) entry.getValue());

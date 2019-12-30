@@ -1,12 +1,12 @@
 language: java
-
-install: echo "I trust Maven."
+dist: trusty
 
 # don't just run the tests, also run error-prone
-script: mvn verify
+script: ./mvnw -B verify
 
 jdk:
-  - oraclejdk8
+- openjdk8
+- openjdk11
 
 notifications:
   email:

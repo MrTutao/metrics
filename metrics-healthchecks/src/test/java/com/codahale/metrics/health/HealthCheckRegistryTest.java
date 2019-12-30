@@ -43,13 +43,13 @@ public class HealthCheckRegistryTest {
 
     @Before
     @SuppressWarnings("unchecked")
-    public void setUp() throws Exception {
+    public void setUp() {
         registry.addListener(listener);
 
         when(hc1.execute()).thenReturn(r1);
         when(hc2.execute()).thenReturn(r2);
         when(executorService.scheduleAtFixedRate(any(AsyncHealthCheckDecorator.class), eq(0L), eq(10L), eq(TimeUnit.SECONDS)))
-                .thenReturn(af);
+            .thenReturn(af);
 
         registry.register("hc1", hc1);
         registry.register("hc2", hc2);
@@ -68,6 +68,11 @@ public class HealthCheckRegistryTest {
         registry.unregister("ahc");
 
         verify(af).cancel(true);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void registeringHealthCheckTwiceThrowsException() {
+        registry.register("hc1", hc1);
     }
 
     @Test
@@ -115,7 +120,7 @@ public class HealthCheckRegistryTest {
     }
 
     @Test
-    public void runsRegisteredHealthChecks() throws Exception {
+    public void runsRegisteredHealthChecks() {
         final Map<String, HealthCheck.Result> results = registry.runHealthChecks();
 
         assertThat(results).contains(entry("hc1", r1));
@@ -124,14 +129,14 @@ public class HealthCheckRegistryTest {
     }
 
     @Test
-    public void runsRegisteredHealthChecksWithFilter() throws Exception {
+    public void runsRegisteredHealthChecksWithFilter() {
         final Map<String, HealthCheck.Result> results = registry.runHealthChecks((name, healthCheck) -> "hc1".equals(name));
 
         assertThat(results).containsOnly(entry("hc1", r1));
     }
 
     @Test
-    public void runsRegisteredHealthChecksWithNonMatchingFilter() throws Exception {
+    public void runsRegisteredHealthChecksWithNonMatchingFilter() {
         final Map<String, HealthCheck.Result> results = registry.runHealthChecks((name, healthCheck) -> false);
 
         assertThat(results).isEmpty();
@@ -165,7 +170,7 @@ public class HealthCheckRegistryTest {
     public void runsRegisteredHealthChecksInParallelWithFilter() throws Exception {
         final ExecutorService executor = Executors.newFixedThreadPool(10);
         final Map<String, HealthCheck.Result> results = registry.runHealthChecks(executor,
-                (name, healthCheck) -> "hc2".equals(name));
+            (name, healthCheck) -> "hc2".equals(name));
 
         executor.shutdown();
         executor.awaitTermination(1, TimeUnit.SECONDS);
@@ -174,7 +179,7 @@ public class HealthCheckRegistryTest {
     }
 
     @Test
-    public void removesRegisteredHealthChecks() throws Exception {
+    public void removesRegisteredHealthChecks() {
         registry.unregister("hc1");
 
         final Map<String, HealthCheck.Result> results = registry.runHealthChecks();
@@ -185,23 +190,23 @@ public class HealthCheckRegistryTest {
     }
 
     @Test
-    public void hasASetOfHealthCheckNames() throws Exception {
+    public void hasASetOfHealthCheckNames() {
         assertThat(registry.getNames()).containsOnly("hc1", "hc2", "ahc");
     }
 
     @Test
-    public void runsHealthChecksByName() throws Exception {
+    public void runsHealthChecksByName() {
         assertThat(registry.runHealthCheck("hc1")).isEqualTo(r1);
     }
 
     @Test
-    public void doesNotRunNonexistentHealthChecks() throws Exception {
+    public void doesNotRunNonexistentHealthChecks()  {
         try {
             registry.runHealthCheck("what");
             failBecauseExceptionWasNotThrown(NoSuchElementException.class);
         } catch (NoSuchElementException e) {
             assertThat(e.getMessage())
-                    .isEqualTo("No health check named what exists");
+                .isEqualTo("No health check named what exists");
         }
 
     }
@@ -215,7 +220,7 @@ public class HealthCheckRegistryTest {
         }
 
         @Override
-        protected Result check() throws Exception {
+        protected Result check() {
             return result;
         }
     }

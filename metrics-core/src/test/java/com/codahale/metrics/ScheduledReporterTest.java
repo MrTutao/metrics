@@ -1,11 +1,13 @@
 package com.codahale.metrics;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,10 +67,32 @@ public class ScheduledReporterTest {
     }
 
     @Test
-    public void pollsPeriodically() throws Exception {
-        reporter.start(200, TimeUnit.MILLISECONDS);
+    public void createWithNullMetricRegistry() {
+        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        DummyReporter r = null;
+        try {
+            r = new DummyReporter(null, "example", MetricFilter.ALL, TimeUnit.SECONDS, TimeUnit.MILLISECONDS, executor);
+            Assert.fail("NullPointerException must be thrown !!!");
+        } catch (NullPointerException e) {
+            Assert.assertEquals("registry == null", e.getMessage());
+        } finally {
+            if (r != null) {
+                r.close();
+            }
+        }
+    }
 
-        Thread.sleep(500);
+    @Test
+    public void pollsPeriodically() throws Exception {
+        CountDownLatch latch = new CountDownLatch(2);
+        reporter.start(100, 100, TimeUnit.MILLISECONDS, () -> {
+            if (latch.getCount() > 0) {
+                reporter.report();
+                latch.countDown();
+            }
+        });
+        latch.await(5, TimeUnit.SECONDS);
+
         verify(reporter, times(2)).report(
                 map("gauge", gauge),
                 map("counter", counter),
@@ -98,9 +122,14 @@ public class ScheduledReporterTest {
 
     @Test
     public void shouldAutoCreateExecutorWhenItNull() throws Exception {
-        reporterWithNullExecutor.start(200, TimeUnit.MILLISECONDS);
-
-        Thread.sleep(500);
+        CountDownLatch latch = new CountDownLatch(2);
+        reporterWithNullExecutor.start(100, 100, TimeUnit.MILLISECONDS, () -> {
+            if (latch.getCount() > 0) {
+                reporterWithNullExecutor.report();
+                latch.countDown();
+            }
+        });
+        latch.await(5, TimeUnit.SECONDS);
         verify(reporterWithNullExecutor, times(2)).report(
                 map("gauge", gauge),
                 map("counter", counter),

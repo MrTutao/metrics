@@ -16,8 +16,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -171,7 +169,7 @@ public class GraphiteReporter extends ScheduledReporter {
          * Don't report the passed metric attributes for all metrics (e.g. "p999", "stddev" or "m15").
          * See {@link MetricAttribute}.
          *
-         * @param disabledMetricAttributes a {@link MetricFilter}
+         * @param disabledMetricAttributes a set of {@link MetricAttribute}
          * @return {@code this}
          */
         public Builder disabledMetricAttributes(Set<MetricAttribute> disabledMetricAttributes) {
@@ -384,10 +382,8 @@ public class GraphiteReporter extends ScheduledReporter {
             return format(((Integer) o).longValue());
         } else if (o instanceof Long) {
             return format(((Long) o).longValue());
-        } else if (o instanceof BigInteger) {
-            return format(((BigInteger) o).doubleValue());
-        } else if (o instanceof BigDecimal) {
-            return format(((BigDecimal) o).doubleValue());
+        } else if (o instanceof Number) {
+            return format(((Number) o).doubleValue());
         } else if (o instanceof Boolean) {
             return format(((Boolean) o) ? 1 : 0);
         }

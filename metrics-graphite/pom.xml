@@ -5,7 +5,7 @@
     <parent>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-parent</artifactId>
-        <version>4.0.0-alpha4-SNAPSHOT</version>
+        <version>4.1.3-SNAPSHOT</version>
     </parent>
 
     <artifactId>metrics-graphite</artifactId>
@@ -15,17 +15,32 @@
         A reporter for Metrics which announces measurements to a Graphite server.
     </description>
 
+    <properties>
+        <javaModuleName>com.codahale.metrics.graphite</javaModuleName>
+        <rabbitmq.version>5.5.3</rabbitmq.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>io.dropwizard.metrics</groupId>
+                <artifactId>metrics-bom</artifactId>
+                <version>${project.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
     <dependencies>
         <dependency>
             <groupId>io.dropwizard.metrics</groupId>
             <artifactId>metrics-core</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>com.rabbitmq</groupId>
             <artifactId>amqp-client</artifactId>
             <version>${rabbitmq.version}</version>
-            <optional>true</optional>
             <exclusions>
                 <exclusion>
                     <groupId>io.dropwizard.metrics</groupId>
@@ -37,6 +52,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
         <dependency>
             <groupId>org.python</groupId>
             <artifactId>jython-standalone</artifactId>

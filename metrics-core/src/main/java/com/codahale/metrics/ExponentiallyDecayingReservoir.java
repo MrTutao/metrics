@@ -99,7 +99,7 @@ public class ExponentiallyDecayingReservoir implements Reservoir {
             final double priority = itemWeight / ThreadLocalRandom.current().nextDouble();
 
             final long newCount = count.incrementAndGet();
-            if (newCount <= size) {
+            if (newCount <= size || values.isEmpty()) {
                 values.put(priority, sample);
             } else {
                 Double first = values.firstKey();
@@ -174,6 +174,9 @@ public class ExponentiallyDecayingReservoir implements Reservoir {
                     for (Double key : keys) {
                         final WeightedSample sample = values.remove(key);
                         final WeightedSample newSample = new WeightedSample(sample.value, sample.weight * scalingFactor);
+                        if (Double.compare(newSample.weight, 0) == 0) {
+                            continue;
+                        }
                         values.put(key * scalingFactor, newSample);
                     }
                 }

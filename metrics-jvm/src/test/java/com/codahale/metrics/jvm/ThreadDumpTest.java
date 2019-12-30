@@ -22,7 +22,7 @@ public class ThreadDumpTest {
     private final ThreadInfo runnable = mock(ThreadInfo.class);
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         final StackTraceElement rLine1 = new StackTraceElement("Blah", "blee", "Blah.java", 100);
 
         when(runnable.getThreadName()).thenReturn("runnable");
@@ -33,19 +33,19 @@ public class ThreadDumpTest {
         when(runnable.getLockedSynchronizers()).thenReturn(new LockInfo[]{});
 
         when(threadMXBean.dumpAllThreads(true, true)).thenReturn(new ThreadInfo[]{
-                runnable
+            runnable
         });
     }
 
     @Test
-    public void dumpsAllThreads() throws Exception {
+    public void dumpsAllThreads() {
         final ByteArrayOutputStream output = new ByteArrayOutputStream();
         threadDump.dump(output);
 
         assertThat(output.toString())
-                .isEqualTo(String.format("\"runnable\" id=100 state=RUNNABLE%n" +
-                        "    at Blah.blee(Blah.java:100)%n" +
-                        "%n" +
-                        "%n"));
+            .isEqualTo(String.format("\"runnable\" id=100 state=RUNNABLE%n" +
+                "    at Blah.blee(Blah.java:100)%n" +
+                "%n" +
+                "%n"));
     }
 }

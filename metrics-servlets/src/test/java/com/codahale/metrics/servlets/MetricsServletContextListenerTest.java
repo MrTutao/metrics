@@ -1,6 +1,11 @@
 package com.codahale.metrics.servlets;
 
-import com.codahale.metrics.*;
+import com.codahale.metrics.Clock;
+import com.codahale.metrics.ExponentiallyDecayingReservoir;
+import com.codahale.metrics.Gauge;
+import com.codahale.metrics.Meter;
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.Timer;
 import org.eclipse.jetty.http.HttpHeader;
 import org.eclipse.jetty.servlet.ServletTester;
 import org.junit.Before;
@@ -45,8 +50,10 @@ public class MetricsServletContextListenerTest extends AbstractServletTest {
     }
 
     @Before
-    public void setUp() throws Exception {
-        when(clock.getTick()).thenReturn(100L, 200L, 300L, 400L);
+    public void setUp() {
+        // provide ticks for the setup (calls getTick 6 times). The serialization in the tests themselves
+        // will call getTick again several times and always get the same value (the last specified here)
+        when(clock.getTick()).thenReturn(100L, 100L, 200L, 300L, 300L, 400L);
 
         registry.register("g1", (Gauge<Long>) () -> 100L);
         registry.counter("c").inc();

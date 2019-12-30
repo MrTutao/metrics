@@ -5,8 +5,12 @@
     <parent>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-parent</artifactId>
-        <version>4.0.0-alpha4-SNAPSHOT</version>
+        <version>4.1.3-SNAPSHOT</version>
     </parent>
+
+    <properties>
+        <javaModuleName>com.codahale.metrics.annotation</javaModuleName>
+    </properties>
 
     <artifactId>metrics-annotation</artifactId>
     <name>Annotations for Metrics</name>

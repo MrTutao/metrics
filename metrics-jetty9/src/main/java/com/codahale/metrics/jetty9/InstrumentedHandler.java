@@ -68,6 +68,8 @@ public class InstrumentedHandler extends HandlerWrapper {
 
     private AsyncListener listener;
 
+    private HttpChannelState.State DISPATCHED_HACK;
+
     /**
      * Create a new instrumented handler using a given metrics registry.
      *
@@ -86,6 +88,13 @@ public class InstrumentedHandler extends HandlerWrapper {
     public InstrumentedHandler(MetricRegistry registry, String prefix) {
         this.metricRegistry = registry;
         this.prefix = prefix;
+
+        try {
+            DISPATCHED_HACK = HttpChannelState.State.valueOf("HANDLING");
+        }
+        catch (IllegalArgumentException e) {
+            DISPATCHED_HACK = HttpChannelState.State.valueOf("DISPATCHED");
+        }
     }
 
     public String getName() {
@@ -203,8 +212,9 @@ public class InstrumentedHandler extends HandlerWrapper {
                 final AsyncContextState state = (AsyncContextState) event.getAsyncContext();
                 final HttpServletRequest request = (HttpServletRequest) state.getRequest();
                 final HttpServletResponse response = (HttpServletResponse) state.getResponse();
-                updateResponses(request, response, startTime);
-                if (state.getHttpChannelState().getState() != HttpChannelState.State.DISPATCHED) {
+                updateResponses(request, response, startTime, true);
+                if (state.getHttpChannelState().getState() != DISPATCHED_HACK &&
+                        state.getHttpChannelState().isSuspended()) {
                     activeSuspended.dec();
                 }
             }
@@ -230,7 +240,7 @@ public class InstrumentedHandler extends HandlerWrapper {
             // resumed request
             start = System.currentTimeMillis();
             activeSuspended.dec();
-            if (state.getState() == HttpChannelState.State.DISPATCHED) {
+            if (state.getState() == DISPATCHED_HACK) {
                 asyncDispatches.mark();
             }
         }
@@ -247,7 +257,7 @@ public class InstrumentedHandler extends HandlerWrapper {
             if (state.isSuspended()) {
                 activeSuspended.inc();
             } else if (state.isInitial()) {
-                updateResponses(httpRequest, httpResponse, start);
+                updateResponses(httpRequest, httpResponse, start, request.isHandled());
             }
             // else onCompletion will handle it.
         }
@@ -283,8 +293,13 @@ public class InstrumentedHandler extends HandlerWrapper {
         }
     }
 
-    private void updateResponses(HttpServletRequest request, HttpServletResponse response, long start) {
-        final int responseStatus = response.getStatus() / 100;
+    private void updateResponses(HttpServletRequest request, HttpServletResponse response, long start, boolean isHandled) {
+        final int responseStatus;
+        if (isHandled) {
+            responseStatus = response.getStatus() / 100;
+        } else {
+            responseStatus = 4; // will end up with a 404 response sent by HttpChannel.handle
+        }
         if (responseStatus >= 1 && responseStatus <= 5) {
             responses[responseStatus - 1].mark();
         }
